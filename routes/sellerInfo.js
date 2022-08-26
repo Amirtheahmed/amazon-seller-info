@@ -27,7 +27,7 @@ router.post(
             } else if (response.status === 503) {
                 throw new Error('🙄 Too many requests. Amazon blocked seller page. Please try again in a few minutes.');
             } else {
-                throw new Error(response.status.toString());
+                throw new Error(response.status);
             }
         }).then(function (html) {
             let seller = getSellerDetailsFromSellerPage(parse(html));
@@ -72,6 +72,42 @@ const getSellerStateFromSellerPage = (sellerPage, isRedesign) => {
         }
     }
     return state
+}
+
+const getSellerBusinessNameFromSellerPage = (sellerPage, isRedesign) => {
+    let businessName;
+    if (isRedesign) {
+        businessName = sellerPage.window.document.querySelector('#page-section-detail-seller-info .a-box-inner .a-row:nth-of-type(2) span:last-of-type')?.textContent.toUpperCase();
+    } else {
+        try {
+            const sellerUl = sellerPage.window.document.querySelectorAll('ul.a-unordered-list.a-nostyle.a-vertical'); //get all ul
+            const sellerUlLast = sellerUl[sellerUl.length - 7]; //get last list
+            const sellerLi = sellerUlLast.querySelectorAll('li'); //get all li
+            const sellerLiLast = sellerLi[sellerLi.length - 7]; //get last li
+            businessName = sellerLiLast.textContent.toUpperCase();
+        } catch {
+            return '?';
+        }
+    }
+    return businessName
+}
+
+const getSellerStoreFrontNameFromSellerPage = (sellerPage, isRedesign) => {
+    let storeFrontName;
+    if (isRedesign) {
+        storeFrontName = sellerPage.window.document.querySelector('#page-section-seller-header .a-box-inner .a-row > h1')?.textContent.toUpperCase();
+    } else {
+        try {
+            const sellerUl = sellerPage.window.document.querySelectorAll('ul.a-unordered-list.a-nostyle.a-vertical'); //get all ul
+            const sellerUlLast = sellerUl[sellerUl.length - 7]; //get last list
+            const sellerLi = sellerUlLast.querySelectorAll('li'); //get all li
+            const sellerLiLast = sellerLi[sellerLi.length - 7]; //get last li
+            storeFrontName = sellerLiLast.textContent.toUpperCase();
+        } catch {
+            return '?';
+        }
+    }
+    return storeFrontName
 }
 
 const getSellerZipCodeFromSellerPage = (sellerPage, isRedesign) => {
@@ -124,9 +160,11 @@ const getSellerDetailsFromSellerPage = (sellerPage) => {
     const country = getSellerCountryFromSellerPage(sellerPage, isRedesign); // returns TR
     const state = getSellerStateFromSellerPage(sellerPage, isRedesign); // returns Istanbul
     const zip = getSellerZipCodeFromSellerPage(sellerPage, isRedesign); // returns 367233
+    const businessName = getSellerBusinessNameFromSellerPage(sellerPage, isRedesign); // returns 367233
+    const storeFrontName = getSellerStoreFrontNameFromSellerPage(sellerPage, isRedesign); // returns 367233
     const rating = getSellerRatingFromSellerPage(sellerPage, isRedesign); // returns 91%
 
-    return { country, state, zip, rating };
+    return { storeFrontName, businessName, country, state, zip, rating };
 }
 
 const parse = (html) => {
